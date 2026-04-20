@@ -73,13 +73,35 @@ def compute_T_KM_1_delta(U, X, delta):
     return jax.vmap(solve_single_particle)(U)
 
 # Objective
+def objective_from_samples(X, U_samples, epsilon, delta, rho_weights=None):
+    """Compute -E_rho[||T_OT(U)-T_KM(U)||^2] from provided samples.
+
+    If `rho_weights` is None, samples are assumed to be drawn directly from rho,
+    so a plain empirical mean is used.
+    If `rho_weights` is provided, a weighted empirical expectation is used.
+    """
+    T_OT_U = compute_T_OT_eps(U_samples, X, epsilon)
+    T_KM_U = compute_T_KM_1_delta(U_samples, X, delta)
+    sq_err = jnp.sum((T_OT_U - T_KM_U) ** 2, axis=1)
+    sq_err = jnp.where(jnp.isfinite(sq_err), sq_err, 0.0)
+
+    if rho_weights is None:
+        # U_samples ~ rho  =>  E_rho[f(U)] ≈ (1/m) * sum_i f(U_i)
+        exp_val = jnp.mean(sq_err)
+    else:
+        # Importance/weighted quadrature estimate of E_rho[f(U)].
+        w = jnp.where(jnp.isfinite(rho_weights), rho_weights, 0.0)
+        w = jnp.maximum(w, 0.0)
+        w = w / (jnp.sum(w) + 1e-12)
+        exp_val = jnp.sum(w * sq_err)
+
+    return -exp_val
+
+
 def objective_fn(X, key, m, epsilon, delta):
     d_dim = X.shape[1]
     U_samples = sample_rho(key, m, d_dim)
-    T_OT_U = compute_T_OT_eps(U_samples, X, epsilon)
-    T_KM_U = compute_T_KM_1_delta(U_samples, X, delta)
-    sq_err = jnp.sum((T_OT_U - T_KM_U)**2, axis=1)
-    return -jnp.mean(jnp.where(jnp.isfinite(sq_err), sq_err, 0.0))
+    return objective_from_samples(X, U_samples, epsilon, delta)
 
 loss_and_grad_fn = eqx.filter_value_and_grad(objective_fn)
 
