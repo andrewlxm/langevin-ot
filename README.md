@@ -1,15 +1,27 @@
 # langevin-ot
 
-## `gradient-ascent.py`
+A JAX-based implementation for optimal transport (OT) and Langevin dynamics comparing two different transport maps: **Optimal Transport (OT)** with entropic regularization and **Kim-Milman(KM)** with Langevin dynamics. The code optimizes target points to minimize the discrepancy between the two transport maps.
 
-- `sample_rho(key, m, d)` draws `m` Gaussian samples in `d` dimensions.
-- `compute_T_OT_eps(U, X, epsilon)` computes the entropic OT map from samples `U` to targets `X`.
-- `v_theta(t, y, X)` defines the time-dependent velocity field used by the KM flow.
-- `compute_T_KM_1_delta(U, X, delta)` solves the ODE for each sample and returns the transported points.
-- `objective_fn(X, key, m, epsilon, delta)` measures the mean squared distance between OT and KM outputs, with a Gaussian weight on the samples.
-- `update_step_box(...)` and `update_step_norm(...)` apply one optimizer step and then project `X` back to the box or unit-norm constraint.
-- `run_optimization_box(...)` and `run_optimization_norm(...)` initialize `X`, run the loop for many steps, and collect the loss history.
-- `visualize_results(...)` plots the loss curve, the target points, and the KM/OT cell assignments, then saves the figure in `results/`.
+## Project Structure
+
+The implementation is organized into components:
+
+- `core.py` holds the transport math and ODE definitions.
+- `optimize.py` holds the objective and optimization loop.
+- `visualize.py` holds the plotting and cross-run label canonicalization.
+
+`gradient-ascent.py` is now a thin runner that imports the optimization entry point and launches experiments.
+
+### What the main pieces do
+
+- `sample_rho(key, m, d)` in `core.py` draws `m` Gaussian samples in `d` dimensions.
+- `compute_T_OT_eps(U, X, epsilon)` in `core.py` computes the entropic OT map from samples `U` to targets `X`.
+- `v_theta(t, y, X)` in `core.py` defines the time-dependent velocity field used by the KM flow.
+- `compute_T_KM_1_delta(U, X, delta)` in `core.py` solves the ODE for each sample and returns the transported points.
+- `objective_fn(X, key, m, epsilon, delta)` in `optimize.py` measures the mean squared distance between OT and KM outputs, with a Gaussian weight on the samples.
+- `update_step_box(...)` and `update_step_norm(...)` in `optimize.py` apply one optimizer step and then project `X` back to the box or unit-norm constraint.
+- `run_optimization_box(...)` and `run_optimization_norm(...)` in `optimize.py` initialize `X`, run the loop for many steps, and collect the loss history.
+- `visualize_results(...)` in `visualize.py` plots the loss curve, the target points, and the KM/OT cell assignments, then saves the figure in `results/`.
 
 ### How the optimization works
 
