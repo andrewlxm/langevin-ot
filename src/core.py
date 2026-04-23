@@ -50,7 +50,7 @@ def compute_T_OT_weighted(U, X, weights_X, epsilon):
 #compute velocity of KM map with delta cutoff
 def v_theta(t, y, X):
     s = t
-    denom_kernel = 2.0 * jnp.square(jnp.maximum(1.0 - s, 1e-4))
+    denom_kernel = 2.0 * jnp.maximum(1.0 - jnp.square(s), 1e-4)
     diffs = y - s * X
     dist_sq = jnp.sum(jnp.square(diffs), axis=1)
     logits = -dist_sq / denom_kernel
